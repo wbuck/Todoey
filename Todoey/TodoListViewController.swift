@@ -10,12 +10,17 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
-    var todoItems = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+    var todoItems = [String]()
     let cellID = "TodoItemCell"
+    let storageKey = "TodoListArray"
+    let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        
+        if let items = defaults.array(forKey: storageKey) as? [String] {
+            todoItems = items
+        }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -55,6 +60,7 @@ class TodoListViewController: UITableViewController {
             (action) in
             guard !alertTextField.text!.isEmpty else { return }
             self.todoItems.append(alertTextField.text!)
+            self.defaults.set(self.todoItems, forKey: "TodoListArray")
             self.tableView.reloadData()
         }
         
