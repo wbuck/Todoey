@@ -9,23 +9,25 @@
 import UIKit
 
 class TodoListViewController: UITableViewController {
-
-    var todoItems = [String]()
+    
+    var todoItems = [TodoItem]()
     let cellID = "TodoItemCell"
-    let storageKey = "TodoListArray"
+    let storageKey = "TodoListItems"
     let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if let items = defaults.array(forKey: storageKey) as? [String] {
+         if let items = defaults.array(forKey: storageKey) as? [TodoItem] {
             todoItems = items
-        }
+         }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let item = todoItems[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
-        cell.textLabel?.text = todoItems[indexPath.row]
+        cell.textLabel?.text = item.task
+        cell.accessoryType = item.completed ? .checkmark : .none
         return cell
     }
     
@@ -34,6 +36,7 @@ class TodoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = todoItems[indexPath.row]
         let cell = tableView.cellForRow(at: indexPath)
         if cell?.accessoryType == .checkmark {
             cell?.accessoryType = .none
@@ -41,7 +44,7 @@ class TodoListViewController: UITableViewController {
         else {
             cell?.accessoryType = .checkmark
         }
-        
+        item.completed = cell?.accessoryType == .checkmark
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -59,13 +62,13 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) {
             (action) in
             guard !alertTextField.text!.isEmpty else { return }
-            self.todoItems.append(alertTextField.text!)
+            let item = TodoItem()
+            item.completed = false
+            item.task = alertTextField.text!
+            self.todoItems.append(item)
             self.defaults.set(self.todoItems, forKey: "TodoListArray")
             self.tableView.reloadData()
         }
-        
-        
-        
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
     }
