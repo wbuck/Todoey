@@ -8,7 +8,14 @@
 
 import Foundation
 
-class TodoItem {
-    var task : String = String()
-    var completed : Bool = false
+class TodoItem : Codable {
+    
+    var task : String
+    var completed : Bool
+    
+    init(task: String, completed: Bool) {
+        self.task = task
+        self.completed = completed
+    }
+    
 }
