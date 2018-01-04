@@ -19,6 +19,7 @@ class TodoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        readTodoItems()
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -69,17 +70,18 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    // Deserialize the todo list from persisted storage.
     fileprivate func readTodoItems() {
-        let decoder = PropertyListDecoder()
+        guard let data = try? Data(contentsOf: dataFilePath!) else { return }
         do {
-            
+            todoItems = try PropertyListDecoder().decode([TodoItem].self, from: data)
         }
         catch {
-            
+            print("Error while deserializing data from plist. \(error)")
         }
     }
     
-    // Encode the todo list so that it can be persisted
+    // Serialize the todo list so that it can be persisted
     // in plist.
     fileprivate func writeTodoItems() {
         let encoder = PropertyListEncoder()
@@ -88,7 +90,7 @@ class TodoListViewController: UITableViewController {
             try encoded.write(to: dataFilePath!)
         }
         catch {
-            print("Error while saving data. \(error)")
+            print("Error while serializing data to plist. \(error)")
         }
     }
 }
