@@ -7,11 +7,14 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
     
     var todoItems = [TodoItem]()
     let cellID = "TodoItemCell"
+    let context = (UIApplication.shared.delegate as! AppDelegate)
+        .persistentContainer.viewContext
     
     let dataFilePath =
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -19,6 +22,7 @@ class TodoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        //        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         readTodoItems()
     }
     
@@ -44,14 +48,13 @@ class TodoListViewController: UITableViewController {
             cell?.accessoryType = .checkmark
         }
         item.completed = cell?.accessoryType == .checkmark
-        writeTodoItems()
+        saveTodoItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
     @IBAction func addButtonClicked(_ sender: UIBarButtonItem) {
         
         let alert = UIAlertController(title: "Add New Todoey Item", message: String(), preferredStyle: .alert)
-        
         var alertTextField = UITextField()
         
         alert.addTextField { (textfield) in
@@ -62,35 +65,35 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) {
             (action) in
             guard !alertTextField.text!.isEmpty else { return }
-            self.todoItems.append(TodoItem(task: alertTextField.text!, completed: false))
-            self.writeTodoItems()
+            let item = TodoItem(context: self.context)
+            item.task = alertTextField.text!
+            item.completed = false
+            self.todoItems.append(item)
+            self.saveTodoItems()
             self.tableView.reloadData()
         }
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
     }
     
-    // Deserialize the todo list from persisted storage.
+    
     fileprivate func readTodoItems() {
-        guard let data = try? Data(contentsOf: dataFilePath!) else { return }
+        
         do {
-            todoItems = try PropertyListDecoder().decode([TodoItem].self, from: data)
+            todoItems = try context.fetch(TodoItem.fetchRequest())
         }
         catch {
-            print("Error while deserializing data from plist. \(error)")
+            print("Error fetching data. \(error)")
         }
     }
     
-    // Serialize the todo list so that it can be persisted
-    // in plist.
-    fileprivate func writeTodoItems() {
-        let encoder = PropertyListEncoder()
+    
+    fileprivate func saveTodoItems() {
         do {
-            let encoded = try encoder.encode(todoItems)
-            try encoded.write(to: dataFilePath!)
+            try context.save()
         }
         catch {
-            print("Error while serializing data to plist. \(error)")
+            print("Failed to save data to DB. \((error as NSError).userInfo.description)")
         }
     }
 }
