@@ -23,7 +23,7 @@ class TodoListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         //        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
-        readTodoItems()
+        fetchTodoItems()
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -39,15 +39,7 @@ class TodoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = todoItems[indexPath.row]
-        let cell = tableView.cellForRow(at: indexPath)
-        if cell?.accessoryType == .checkmark {
-            cell?.accessoryType = .none
-        }
-        else {
-            cell?.accessoryType = .checkmark
-        }
-        item.completed = cell?.accessoryType == .checkmark
+        todoItems[indexPath.row].completed = !todoItems[indexPath.row].completed
         saveTodoItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -77,14 +69,15 @@ class TodoListViewController: UITableViewController {
     }
     
     
-    fileprivate func readTodoItems() {
+    fileprivate func fetchTodoItems(with request : NSFetchRequest<TodoItem> = TodoItem.fetchRequest()) {
         
         do {
-            todoItems = try context.fetch(TodoItem.fetchRequest())
+            todoItems = try context.fetch(request)
         }
         catch {
             print("Error fetching data. \(error)")
         }
+        tableView.reloadData()
     }
     
     
@@ -95,6 +88,27 @@ class TodoListViewController: UITableViewController {
         catch {
             print("Failed to save data to DB. \((error as NSError).userInfo.description)")
         }
+        tableView.reloadData()
+    }
+}
+
+// MARK: Search bar methods
+extension TodoListViewController : UISearchBarDelegate {
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard searchText.isEmpty else { return }
+        fetchTodoItems()
+        DispatchQueue.main.async {
+            searchBar.resignFirstResponder()
+        }
+    }
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard !searchBar.text!.isEmpty else { return }
+        let request : NSFetchRequest<TodoItem> = TodoItem.fetchRequest()
+        request.predicate = NSPredicate(format: "task CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors = [NSSortDescriptor(key: "task", ascending: true)]
+        fetchTodoItems(with: request)
     }
 }
 
