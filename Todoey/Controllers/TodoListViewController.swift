@@ -13,17 +13,16 @@ class TodoListViewController: UITableViewController {
     
     var todoItems = [TodoItem]()
     let cellID = "TodoItemCell"
+    var selectedCategory : Category? {
+        didSet {
+            fetchTodoItems()
+        }
+    }
     let context = (UIApplication.shared.delegate as! AppDelegate)
         .persistentContainer.viewContext
     
-    let dataFilePath =
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-            .first?.appendingPathComponent("TodoItems.plist")
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        //        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
-        fetchTodoItems()
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -60,9 +59,9 @@ class TodoListViewController: UITableViewController {
             let item = TodoItem(context: self.context)
             item.task = alertTextField.text!
             item.completed = false
+            item.category = self.selectedCategory!
             self.todoItems.append(item)
             self.saveTodoItems()
-            self.tableView.reloadData()
         }
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
@@ -70,6 +69,13 @@ class TodoListViewController: UITableViewController {
     
     
     fileprivate func fetchTodoItems(with request : NSFetchRequest<TodoItem> = TodoItem.fetchRequest()) {
+        let categoryPredicate = NSPredicate(format: "category.name MATCHES %@", selectedCategory!.name!)
+        if let predicate = request.predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [predicate, categoryPredicate])
+        }
+        else {
+            request.predicate = categoryPredicate
+        }
         
         do {
             todoItems = try context.fetch(request)
@@ -92,7 +98,7 @@ class TodoListViewController: UITableViewController {
     }
 }
 
-// MARK: Search bar methods
+// MARK: - Search bar methods
 extension TodoListViewController : UISearchBarDelegate {
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
