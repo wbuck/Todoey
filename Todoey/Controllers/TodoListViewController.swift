@@ -8,10 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
-    
-    let cellID = "TodoItemCell"
+class TodoListViewController: SwipeTableViewController {
     var todoItems : Results<TodoItem>?
     let realm = try! Realm()
     var selectedCategory : Category? {
@@ -22,18 +21,29 @@ class TodoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        reuseableCellId = "TodoItemCell"
+        tableView.separatorStyle = .none
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        // Set to default.
+        var categoryColor = UIColor.flatSkyBlue
+        // Attempt to set initial color to the color
+        // of the parent category.
+        if let hexColor = selectedCategory?.color {
+            categoryColor = UIColor(hexString: hexColor) ?? UIColor.flatSkyBlue
+        }
+        
         if let item = todoItems?[indexPath.row] {
             cell.textLabel?.text = item.task
             cell.accessoryType = item.completed ? .checkmark : .none
+            cell.backgroundColor = categoryColor.darken(byPercentage: CGFloat(indexPath.row) / CGFloat((todoItems!.count)))
+            cell.textLabel?.textColor = ContrastColorOf(cell.backgroundColor!, returnFlat: true)
         }
         else {
             cell.textLabel?.text = "No Tasks"
         }
-        
         return cell
     }
     
@@ -69,13 +79,13 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) {
             (action) in
             guard !alertTextField.text!.isEmpty else { return }
-            guard let currentCategory = self.selectedCategory else { return }
+            guard let category = self.selectedCategory else { return }
             do {
                 try self.realm.write {
                     let todoItem = TodoItem()
                     todoItem.task = alertTextField.text!
                     todoItem.completed = false
-                    currentCategory.todoItems.append(todoItem)
+                    category.todoItems.append(todoItem)
                 }
             }
             catch {
@@ -87,7 +97,17 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
-    
+    override func updateModel(at indexPath: IndexPath) {
+        guard let todoItem = todoItems?[indexPath.row] else { return }
+        do {
+            try realm.write {
+                realm.delete(todoItem)
+            }
+        }
+        catch {
+            print("Failed to remove todo item. \(error)")
+        }
+    }
     
     fileprivate func fetchTodoItems() {
         guard let currentCategory = self.selectedCategory else { return }

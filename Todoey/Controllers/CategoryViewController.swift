@@ -8,18 +8,19 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
-
-    let cellID = "CategoryCell"
+class CategoryViewController: SwipeTableViewController {
     var categories : Results<Category>?
     let realm = try! Realm()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         fetchCategories()
+        reuseableCellId = "CategoryCell"
+        tableView.separatorStyle = .none
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -27,7 +28,12 @@ class CategoryViewController: UITableViewController {
     
     // Mark: - Table source delegate methods
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        if let category = categories?[indexPath.row] {
+            let color = UIColor(hexString: category.color ?? "0096FF")
+            cell.backgroundColor = color
+            cell.textLabel?.textColor = ContrastColorOf(color!, returnFlat: true)
+        }
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories"
         return cell
     }
@@ -47,6 +53,18 @@ class CategoryViewController: UITableViewController {
         }
     }
     
+    override func updateModel(at indexPath: IndexPath) {
+        guard let category = categories?[indexPath.row] else { return }
+        do {
+            try self.realm.write {
+                self.realm.delete(category)
+            }
+        }
+        catch {
+            print("Failed to delete category. \(error)")
+        }
+    }
+    
     fileprivate func fetchCategories() {
         categories = realm.objects(Category.self)
         tableView.reloadData()
@@ -63,7 +81,7 @@ class CategoryViewController: UITableViewController {
         }
         tableView.reloadData()
     }
-
+    
     
     @IBAction func addCategoryButtonClicked(_ sender: UIBarButtonItem) {
         
@@ -79,6 +97,7 @@ class CategoryViewController: UITableViewController {
             guard !alertTextField.text!.isEmpty else { return }
             let category = Category()
             category.name = alertTextField.text!
+            category.color = UIColor.randomFlat.lighten(byPercentage: 0.9)?.hexValue()
             self.save(category: category)
         }
         
@@ -86,8 +105,6 @@ class CategoryViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
 }
-
-
 
 
 
