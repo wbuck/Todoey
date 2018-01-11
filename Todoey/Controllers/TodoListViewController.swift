@@ -13,10 +13,12 @@ import ChameleonFramework
 class TodoListViewController: SwipeTableViewController {
     var todoItems : Results<TodoItem>?
     let realm = try! Realm()
+    var originalBarTintColor : UIColor?
+    
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     var selectedCategory : Category? {
-        didSet {
-            fetchTodoItems()
-        }
+        didSet { fetchTodoItems() }
     }
     
     override func viewDidLoad() {
@@ -25,17 +27,40 @@ class TodoListViewController: SwipeTableViewController {
         tableView.separatorStyle = .none
     }
     
+    
+    override func viewWillAppear(_ animated: Bool) {
+        guard let nav = navigationController?.navigationBar else { return }
+        guard let hexColor = selectedCategory?.color else { return }
+        guard let color = UIColor(hexString: hexColor) else { return }
+        originalBarTintColor = nav.barTintColor
+        changeColor(color: UIColor(hexString: hexColor))
+        searchBar.barTintColor = color
+        title = selectedCategory?.name ?? "Todo items"
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        changeColor(color: originalBarTintColor)
+    }
+    
+    fileprivate func changeColor(color: UIColor?) {
+        guard let newColor = color else { return }
+        guard let nav = navigationController?.navigationBar else { return }
+        nav.barTintColor = newColor
+        nav.tintColor = ContrastColorOf(newColor, returnFlat: true)
+        nav.largeTitleTextAttributes = [NSAttributedStringKey.foregroundColor:
+            ContrastColorOf(newColor, returnFlat: true)]
+    }
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
-        // Set to default.
-        var categoryColor = UIColor.flatSkyBlue
-        // Attempt to set initial color to the color
-        // of the parent category.
-        if let hexColor = selectedCategory?.color {
-            categoryColor = UIColor(hexString: hexColor) ?? UIColor.flatSkyBlue
-        }
-        
         if let item = todoItems?[indexPath.row] {
+            // Set to default.
+            var categoryColor = UIColor.flatSkyBlue
+            // Attempt to set initial color to the color
+            // of the parent category.
+            if let hexColor = selectedCategory?.color {
+                categoryColor = UIColor(hexString: hexColor) ?? UIColor.flatSkyBlue
+            }
             cell.textLabel?.text = item.task
             cell.accessoryType = item.completed ? .checkmark : .none
             cell.backgroundColor = categoryColor.darken(byPercentage: CGFloat(indexPath.row) / CGFloat((todoItems!.count)))
@@ -111,7 +136,7 @@ class TodoListViewController: SwipeTableViewController {
     
     fileprivate func fetchTodoItems() {
         guard let currentCategory = self.selectedCategory else { return }
-        todoItems = currentCategory.todoItems.sorted(byKeyPath: "task", ascending: true)
+        todoItems =  currentCategory.todoItems.sorted(byKeyPath: "task", ascending: true)
         tableView.reloadData()
     }
 }

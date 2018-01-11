@@ -21,6 +21,11 @@ class CategoryViewController: SwipeTableViewController {
         tableView.separatorStyle = .none
     }
     
+    /*
+     override func viewWillAppear(_ animated: Bool) {
+     navigationController?.navigationBar.barTintColor = UIColor.flatSkyBlue
+     }
+     */
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
